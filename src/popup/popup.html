@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="header">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 12l2 2 4-4"/>
+        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+      </svg>
+      <span>Consent Mode Checker</span>
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      Scanning page...
+    </div>
+
+    <div id="results" class="hidden">
+      <!-- Overall Status -->
+      <div id="statusBanner" class="banner"></div>
+
+      <!-- CMP Section -->
+      <div class="section">
+        <div class="section-title">CMP Platform</div>
+        <div id="cmpInfo" class="info-row"></div>
+      </div>
+
+      <!-- Google Tags Section -->
+      <div class="section">
+        <div class="section-title">Google Tags</div>
+        <div id="tagInfo" class="info-row"></div>
+      </div>
+
+      <!-- Consent Defaults -->
+      <div class="section">
+        <div class="section-title">Consent Defaults</div>
+        <div id="consentDefaults" class="consent-grid"></div>
+      </div>
+
+      <!-- Consent Updates (after user interaction) -->
+      <div id="updatesSection" class="section hidden">
+        <div class="section-title">Consent Updates</div>
+        <div id="consentUpdates" class="consent-grid"></div>
+      </div>
+
+      <!-- Current State -->
+      <div id="stateSection" class="section hidden">
+        <div class="section-title">Current State</div>
+        <div id="consentState" class="consent-grid"></div>
+      </div>
+
+      <!-- Issues -->
+      <div id="issuesSection" class="section hidden">
+        <div class="section-title issues-title">Issues</div>
+        <div id="issuesList" class="issues-list"></div>
+      </div>
+    </div>
+
+    <button id="rescanBtn" class="rescan-btn hidden">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+      </svg>
+      Rescan
+    </button>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
