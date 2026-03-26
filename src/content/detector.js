@@ -25,9 +25,9 @@ export function detectConsentMode() {
   // --- Detect Google Tag (gtag.js / GTM) ---
   const scripts = document.querySelectorAll('script[src]');
   for (const script of scripts) {
-    const src = script.src || '';
-    if (src.includes('googletagmanager.com/gtag/js')) result.gtagPresent = true;
-    if (src.includes('googletagmanager.com/gtm.js')) result.gtmPresent = true;
+    const scriptSource = script.src || '';
+    if (scriptSource.includes('googletagmanager.com/gtag/js')) result.gtagPresent = true;
+    if (scriptSource.includes('googletagmanager.com/gtm.js')) result.gtmPresent = true;
   }
 
   // --- Detect CMP ---
@@ -104,12 +104,12 @@ export function detectConsentMode() {
     },
   ];
 
-  for (const cmp of cmpDetectors) {
+  for (const detector of cmpDetectors) {
     try {
-      if (cmp.test()) {
+      if (detector.test()) {
         result.cmp.detected = true;
-        result.cmp.name = cmp.name;
-        result.cmp.version = cmp.version();
+        result.cmp.name = detector.name;
+        result.cmp.version = detector.version();
         break;
       }
     } catch (_) {
@@ -129,25 +129,25 @@ export function detectConsentMode() {
       // gtag-style consent: [0] = 'consent', [1] = 'default'|'update', [2] = {…}
       if (Array.isArray(entry) && entry[0] === 'consent') {
         const action = entry[1]; // 'default' or 'update'
-        const params = entry[2];
+        const consentParams = entry[2];
         if (action === 'default') {
           result.consentMode.detected = true;
-          result.consentMode.defaults = params;
+          result.consentMode.defaults = consentParams;
         } else if (action === 'update') {
           result.consentMode.detected = true;
-          result.consentMode.updates = params;
+          result.consentMode.updates = consentParams;
         }
-        result.dataLayerEntries.push({ action, params });
+        result.dataLayerEntries.push({ action, params: consentParams });
       }
       // GTM dataLayer push style
       if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
-        const event = entry.event || entry[0];
-        if (event === 'consent_default' || event === 'gtm.consent_default') {
+        const eventName = entry.event || entry[0];
+        if (eventName === 'consent_default' || eventName === 'gtm.consent_default') {
           result.consentMode.detected = true;
           result.consentMode.defaults = entry;
           result.dataLayerEntries.push({ action: 'default', params: entry });
         }
-        if (event === 'consent_update' || event === 'gtm.consent_update') {
+        if (eventName === 'consent_update' || eventName === 'gtm.consent_update') {
           result.consentMode.detected = true;
           result.consentMode.updates = entry;
           result.dataLayerEntries.push({ action: 'update', params: entry });
@@ -159,59 +159,66 @@ export function detectConsentMode() {
   // --- Check window.google_tag_data for consent state (set by gtag.js) ---
   // gtag.js consumes dataLayer entries, so defaults/updates may no longer be
   // in the dataLayer array. Extract them from the internal consent state.
+  // Internally gtag stores booleans; map to 'granted'/'denied' strings.
+  function toConsentString(value) {
+    if (value === true || value === 'granted') return 'granted';
+    if (value === false || value === 'denied') return 'denied';
+    return value;
+  }
+
   if (window.google_tag_data?.ics?.entries) {
     result.consentMode.detected = true;
-    const entries = window.google_tag_data.ics.entries;
-    const defaults = {};
-    const updates = {};
-    const current = {};
-    for (const [key, val] of Object.entries(entries)) {
-      if (!CONSENT_TYPES.includes(key)) continue;
-      if (val.default !== undefined) defaults[key] = val.default;
-      if (val.update !== undefined) updates[key] = val.update;
-      current[key] = val.update !== undefined ? val.update : val.default;
+    const icsEntries = window.google_tag_data.ics.entries;
+    const defaultConsent = {};
+    const updatedConsent = {};
+    const currentConsent = {};
+    for (const [consentType, consentEntry] of Object.entries(icsEntries)) {
+      if (!CONSENT_TYPES.includes(consentType)) continue;
+      if (consentEntry.default !== undefined) defaultConsent[consentType] = toConsentString(consentEntry.default);
+      if (consentEntry.update !== undefined) updatedConsent[consentType] = toConsentString(consentEntry.update);
+      currentConsent[consentType] = toConsentString(consentEntry.update !== undefined ? consentEntry.update : consentEntry.default);
     }
-    if (Object.keys(defaults).length && !result.consentMode.defaults) {
-      result.consentMode.defaults = defaults;
+    if (Object.keys(defaultConsent).length && !result.consentMode.defaults) {
+      result.consentMode.defaults = defaultConsent;
     }
-    if (Object.keys(updates).length && !result.consentMode.updates) {
-      result.consentMode.updates = updates;
+    if (Object.keys(updatedConsent).length && !result.consentMode.updates) {
+      result.consentMode.updates = updatedConsent;
     }
-    if (Object.keys(current).length) {
-      result.consentMode.implementation = current;
+    if (Object.keys(currentConsent).length) {
+      result.consentMode.implementation = currentConsent;
     }
   }
 
   // --- Also check GTM internal consent model ---
   if (window.google_tag_manager) {
     for (const containerId of Object.keys(window.google_tag_manager)) {
-      const container = window.google_tag_manager[containerId];
-      if (!container?.dataLayer?.get) continue;
+      const gtmContainer = window.google_tag_manager[containerId];
+      if (!gtmContainer?.dataLayer?.get) continue;
       try {
-        const defaults = {};
-        const current = {};
-        for (const type of CONSENT_TYPES) {
-          const defVal = container.dataLayer.get('consentModel.default.' + type);
-          const curVal = container.dataLayer.get('consentModel.' + type);
-          if (defVal !== undefined) defaults[type] = defVal;
-          if (curVal !== undefined) current[type] = curVal;
-          if (defVal !== undefined || curVal !== undefined) result.consentMode.detected = true;
+        const defaultConsent = {};
+        const currentConsent = {};
+        for (const consentType of CONSENT_TYPES) {
+          const defaultValue = gtmContainer.dataLayer.get('consentModel.default.' + consentType);
+          const currentValue = gtmContainer.dataLayer.get('consentModel.' + consentType);
+          if (defaultValue !== undefined) defaultConsent[consentType] = toConsentString(defaultValue);
+          if (currentValue !== undefined) currentConsent[consentType] = toConsentString(currentValue);
+          if (defaultValue !== undefined || currentValue !== undefined) result.consentMode.detected = true;
         }
-        if (Object.keys(defaults).length && !result.consentMode.defaults) {
-          result.consentMode.defaults = defaults;
+        if (Object.keys(defaultConsent).length && !result.consentMode.defaults) {
+          result.consentMode.defaults = defaultConsent;
         }
-        if (Object.keys(current).length && !result.consentMode.implementation) {
-          result.consentMode.implementation = current;
+        if (Object.keys(currentConsent).length && !result.consentMode.implementation) {
+          result.consentMode.implementation = currentConsent;
         }
         // If current differs from defaults, there was an update
         if (!result.consentMode.updates) {
-          const updates = {};
-          for (const type of CONSENT_TYPES) {
-            if (current[type] !== undefined && current[type] !== defaults[type]) {
-              updates[type] = current[type];
+          const updatedConsent = {};
+          for (const consentType of CONSENT_TYPES) {
+            if (currentConsent[consentType] !== undefined && currentConsent[consentType] !== defaultConsent[consentType]) {
+              updatedConsent[consentType] = currentConsent[consentType];
             }
           }
-          if (Object.keys(updates).length) result.consentMode.updates = updates;
+          if (Object.keys(updatedConsent).length) result.consentMode.updates = updatedConsent;
         }
       } catch (_) {
         // ignore
@@ -241,10 +248,10 @@ export function detectConsentMode() {
   }
   if (result.consentMode.detected && result.consentMode.defaults) {
     const defaults = result.consentMode.defaults;
-    const requiredV2 = ['ad_storage', 'ad_user_data', 'ad_personalization', 'analytics_storage'];
-    for (const type of requiredV2) {
-      if (!(type in defaults)) {
-        result.issues.push(`Missing required consent type in defaults: ${type}`);
+    const requiredConsentTypes = ['ad_storage', 'ad_user_data', 'ad_personalization', 'analytics_storage'];
+    for (const consentType of requiredConsentTypes) {
+      if (!(consentType in defaults)) {
+        result.issues.push(`Missing required consent type in defaults: ${consentType}`);
       }
     }
     const hasWaitForUpdate = defaults.wait_for_update
