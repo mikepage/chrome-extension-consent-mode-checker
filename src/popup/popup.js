@@ -15,6 +15,9 @@ const elements = {
   issuesSection: document.getElementById('issuesSection'),
   issuesList: document.getElementById('issuesList'),
   rescanBtn: document.getElementById('rescanBtn'),
+  consentRowTemplate: document.getElementById('consent-row-template'),
+  badgeTemplate: document.getElementById('badge-template'),
+  issueTemplate: document.getElementById('issue-template'),
 };
 
 async function scan() {
@@ -28,10 +31,9 @@ async function scan() {
     const [{ result }] = await chrome.scripting.executeScript({
       func: detectConsentMode,
       target: { tabId: tab.id },
-      world: 'MAIN', // Access page JS globals (dataLayer, gtag, etc.)
+      world: 'MAIN',
     });
 
-    // Cache result
     chrome.storage.session.set({ [`scan_${tab.id}`]: result });
 
     elements.loading.classList.add('hidden');

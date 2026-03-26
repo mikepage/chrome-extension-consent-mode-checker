@@ -157,40 +157,64 @@ export function detectConsentMode() {
   }
 
   // --- Check window.google_tag_data for consent state (set by gtag.js) ---
+  // gtag.js consumes dataLayer entries, so defaults/updates may no longer be
+  // in the dataLayer array. Extract them from the internal consent state.
   if (window.google_tag_data?.ics?.entries) {
     result.consentMode.detected = true;
     const entries = window.google_tag_data.ics.entries;
-    const consentState = {};
+    const defaults = {};
+    const updates = {};
+    const current = {};
     for (const [key, val] of Object.entries(entries)) {
-      if (CONSENT_TYPES.includes(key)) {
-        consentState[key] = val.update !== undefined ? val.update : val.default;
-      }
+      if (!CONSENT_TYPES.includes(key)) continue;
+      if (val.default !== undefined) defaults[key] = val.default;
+      if (val.update !== undefined) updates[key] = val.update;
+      current[key] = val.update !== undefined ? val.update : val.default;
     }
-    if (Object.keys(consentState).length) {
-      result.consentMode.implementation = consentState;
+    if (Object.keys(defaults).length && !result.consentMode.defaults) {
+      result.consentMode.defaults = defaults;
+    }
+    if (Object.keys(updates).length && !result.consentMode.updates) {
+      result.consentMode.updates = updates;
+    }
+    if (Object.keys(current).length) {
+      result.consentMode.implementation = current;
     }
   }
 
-  // --- Also check googletagmanager internal consent signals ---
+  // --- Also check GTM internal consent model ---
   if (window.google_tag_manager) {
     for (const containerId of Object.keys(window.google_tag_manager)) {
       const container = window.google_tag_manager[containerId];
-      if (container?.dataLayer?.get) {
-        try {
-          const consentState = {};
+      if (!container?.dataLayer?.get) continue;
+      try {
+        const defaults = {};
+        const current = {};
+        for (const type of CONSENT_TYPES) {
+          const defVal = container.dataLayer.get('consentModel.default.' + type);
+          const curVal = container.dataLayer.get('consentModel.' + type);
+          if (defVal !== undefined) defaults[type] = defVal;
+          if (curVal !== undefined) current[type] = curVal;
+          if (defVal !== undefined || curVal !== undefined) result.consentMode.detected = true;
+        }
+        if (Object.keys(defaults).length && !result.consentMode.defaults) {
+          result.consentMode.defaults = defaults;
+        }
+        if (Object.keys(current).length && !result.consentMode.implementation) {
+          result.consentMode.implementation = current;
+        }
+        // If current differs from defaults, there was an update
+        if (!result.consentMode.updates) {
+          const updates = {};
           for (const type of CONSENT_TYPES) {
-            const val = container.dataLayer.get('consentModel.' + type);
-            if (val !== undefined) {
-              consentState[type] = val;
-              result.consentMode.detected = true;
+            if (current[type] !== undefined && current[type] !== defaults[type]) {
+              updates[type] = current[type];
             }
           }
-          if (Object.keys(consentState).length && !result.consentMode.implementation) {
-            result.consentMode.implementation = consentState;
-          }
-        } catch (_) {
-          // ignore
+          if (Object.keys(updates).length) result.consentMode.updates = updates;
         }
+      } catch (_) {
+        // ignore
       }
     }
   }
@@ -223,7 +247,9 @@ export function detectConsentMode() {
         result.issues.push(`Missing required consent type in defaults: ${type}`);
       }
     }
-    if (!defaults.wait_for_update) {
+    const hasWaitForUpdate = defaults.wait_for_update
+      || window.google_tag_data?.ics?.waitForUpdate;
+    if (!hasWaitForUpdate) {
       result.issues.push('Missing wait_for_update in defaults — recommended to set (e.g. 500ms) so CMP can load before tags fire');
     }
   }

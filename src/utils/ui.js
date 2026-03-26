@@ -8,70 +8,55 @@ const CONSENT_TYPES = [
   'security_storage',
 ];
 
-function renderConsentGrid(container, data) {
-  container.replaceChildren();
+function addConsentRow(container, template, type, value) {
+  const frag = template.content.cloneNode(true);
+  const typeEl = frag.querySelector('.consent-type');
+  const valueEl = frag.querySelector('.consent-value');
+  typeEl.textContent = type;
+
+  if (value === 'granted') {
+    valueEl.textContent = 'granted';
+    valueEl.classList.add('consent-granted');
+  } else if (value === 'denied') {
+    valueEl.textContent = 'denied';
+    valueEl.classList.add('consent-denied');
+  } else if (value !== undefined) {
+    valueEl.textContent = String(value);
+  } else {
+    valueEl.textContent = 'not set';
+    valueEl.classList.add('consent-missing');
+  }
+
+  container.appendChild(frag);
+}
+
+function renderConsentGrid(container, data, template) {
+  container.innerHTML = '';
   if (!data) {
-    const placeholder = document.createElement('div');
-    placeholder.className = 'consent-type';
-    placeholder.style.cssText = 'grid-column:1/-1;color:#999;font-style:italic';
-    placeholder.textContent = 'Not set';
-    container.appendChild(placeholder);
+    container.innerHTML = '<div class="consent-type" style="grid-column:1/-1;color:#999;font-style:italic">Not set</div>';
     return;
   }
   for (const type of CONSENT_TYPES) {
-    const value = data[type];
-
-    const typeEl = document.createElement('div');
-    typeEl.className = 'consent-type';
-    typeEl.textContent = type;
-
-    const valueEl = document.createElement('div');
-    valueEl.className = 'consent-value';
-
-    if (value === 'granted') {
-      valueEl.textContent = 'granted';
-      valueEl.classList.add('consent-granted');
-    } else if (value === 'denied') {
-      valueEl.textContent = 'denied';
-      valueEl.classList.add('consent-denied');
-    } else if (value !== undefined) {
-      valueEl.textContent = String(value);
-    } else {
-      valueEl.textContent = 'not set';
-      valueEl.classList.add('consent-missing');
-    }
-
-    container.appendChild(typeEl);
-    container.appendChild(valueEl);
+    addConsentRow(container, template, type, data[type]);
   }
-
   // Show any extra keys not in CONSENT_TYPES
-  if (data) {
-    for (const [key, value] of Object.entries(data)) {
-      if (CONSENT_TYPES.includes(key) || key === 'event' || key === 'wait_for_update') continue;
-      if (typeof value !== 'string') continue;
-      const typeEl = document.createElement('div');
-      typeEl.className = 'consent-type';
-      typeEl.textContent = key;
-      const valueEl = document.createElement('div');
-      valueEl.className = 'consent-value';
-      valueEl.textContent = value;
-      if (value === 'granted') valueEl.classList.add('consent-granted');
-      if (value === 'denied') valueEl.classList.add('consent-denied');
-      container.appendChild(typeEl);
-      container.appendChild(valueEl);
-    }
+  for (const [key, value] of Object.entries(data)) {
+    if (CONSENT_TYPES.includes(key) || key === 'event' || key === 'wait_for_update') continue;
+    if (typeof value !== 'string') continue;
+    addConsentRow(container, template, key, value);
   }
 }
 
-function makeBadge(text, className) {
-  const span = document.createElement('span');
-  span.className = `badge ${className}`;
-  span.textContent = text;
-  return span;
+function addBadge(container, template, text, className) {
+  const badge = template.content.firstElementChild.cloneNode(true);
+  badge.textContent = text;
+  badge.classList.add(className);
+  container.appendChild(badge);
 }
 
 export function renderResults(result, elements) {
+  const { consentRowTemplate, badgeTemplate, issueTemplate } = elements;
+
   // --- Status Banner ---
   const hasConsentMode = result.consentMode.detected;
   const hasCmp = result.cmp.detected;
@@ -90,27 +75,27 @@ export function renderResults(result, elements) {
   }
 
   // --- CMP Info ---
-  elements.cmpInfo.replaceChildren();
+  elements.cmpInfo.innerHTML = '';
   if (result.cmp.detected) {
     const version = result.cmp.version ? ` v${result.cmp.version}` : '';
-    elements.cmpInfo.appendChild(makeBadge(result.cmp.name + version, 'badge-green'));
+    addBadge(elements.cmpInfo, badgeTemplate, result.cmp.name + version, 'badge-green');
   } else {
-    elements.cmpInfo.appendChild(makeBadge('Not detected', 'badge-red'));
+    addBadge(elements.cmpInfo, badgeTemplate, 'Not detected', 'badge-red');
   }
 
   // --- Tag Info ---
-  elements.tagInfo.replaceChildren();
-  if (result.gtagPresent) elements.tagInfo.appendChild(makeBadge('gtag.js', 'badge-green'));
-  if (result.gtmPresent) elements.tagInfo.appendChild(makeBadge('GTM', 'badge-green'));
-  if (!result.gtagPresent && !result.gtmPresent) elements.tagInfo.appendChild(makeBadge('None found', 'badge-red'));
+  elements.tagInfo.innerHTML = '';
+  if (result.gtagPresent) addBadge(elements.tagInfo, badgeTemplate, 'gtag.js', 'badge-green');
+  if (result.gtmPresent) addBadge(elements.tagInfo, badgeTemplate, 'GTM', 'badge-green');
+  if (!result.gtagPresent && !result.gtmPresent) addBadge(elements.tagInfo, badgeTemplate, 'None found', 'badge-red');
 
   // --- Consent Defaults ---
-  renderConsentGrid(elements.consentDefaults, result.consentMode.defaults);
+  renderConsentGrid(elements.consentDefaults, result.consentMode.defaults, consentRowTemplate);
 
   // --- Consent Updates ---
   if (result.consentMode.updates) {
     elements.updatesSection.classList.remove('hidden');
-    renderConsentGrid(elements.consentUpdates, result.consentMode.updates);
+    renderConsentGrid(elements.consentUpdates, result.consentMode.updates, consentRowTemplate);
   } else {
     elements.updatesSection.classList.add('hidden');
   }
@@ -118,7 +103,7 @@ export function renderResults(result, elements) {
   // --- Current State ---
   if (result.consentMode.implementation) {
     elements.stateSection.classList.remove('hidden');
-    renderConsentGrid(elements.consentState, result.consentMode.implementation);
+    renderConsentGrid(elements.consentState, result.consentMode.implementation, consentRowTemplate);
   } else {
     elements.stateSection.classList.add('hidden');
   }
@@ -126,10 +111,9 @@ export function renderResults(result, elements) {
   // --- Issues ---
   if (result.issues.length) {
     elements.issuesSection.classList.remove('hidden');
-    elements.issuesList.replaceChildren();
+    elements.issuesList.innerHTML = '';
     for (const issue of result.issues) {
-      const item = document.createElement('div');
-      item.className = 'issue-item';
+      const item = issueTemplate.content.firstElementChild.cloneNode(true);
       item.textContent = issue;
       elements.issuesList.appendChild(item);
     }
