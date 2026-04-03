@@ -1,3 +1,5 @@
+import { GCD_SIGNAL_CODES } from './gcd-decoder.js';
+
 const CONSENT_TYPES = [
   'ad_storage',
   'ad_user_data',
@@ -119,5 +121,103 @@ export function renderResults(scanResult, elements) {
     }
   } else {
     elements.issuesSection.classList.add('hidden');
+  }
+}
+
+export function renderNetworkSignals(networkData, elements) {
+  const { consentRowTemplate, badgeTemplate } = elements;
+
+  if (!networkData || networkData.requests.length === 0) {
+    elements.networkSection.classList.add('hidden');
+    return;
+  }
+
+  elements.networkSection.classList.remove('hidden');
+
+  // --- GCS ---
+  elements.gcsInfo.innerHTML = '';
+  const gcs = networkData.latestGcs;
+  if (gcs) {
+    const label = `${gcs.raw} — Ads: ${gcs.ads}, Analytics: ${gcs.analytics}`;
+    const allGranted = gcs.ads === 'granted' && gcs.analytics === 'granted';
+    const allDenied = gcs.ads === 'denied' && gcs.analytics === 'denied';
+    const badgeClass = allGranted ? 'badge-green' : allDenied ? 'badge-red' : 'badge-gray';
+    addBadge(elements.gcsInfo, badgeTemplate, label, badgeClass);
+  } else {
+    addBadge(elements.gcsInfo, badgeTemplate, 'Not found in requests', 'badge-gray');
+  }
+
+  // --- GCD ---
+  renderGcdGrid(elements.gcdGrid, networkData.latestGcd, consentRowTemplate);
+
+  // --- Meta ---
+  elements.networkMeta.textContent = `${networkData.requests.length} request${networkData.requests.length !== 1 ? 's' : ''} captured`;
+}
+
+export function renderGcdGrid(container, gcd, template) {
+  container.innerHTML = '';
+  if (!gcd || !gcd.signals) {
+    container.innerHTML = '<div class="consent-type" style="grid-column:1/-1;color:#999;font-style:italic">Not found in requests</div>';
+    return;
+  }
+  for (const signal of gcd.signals) {
+    const fragment = template.content.cloneNode(true);
+    const typeEl = fragment.querySelector('.consent-type');
+    const valueEl = fragment.querySelector('.consent-value');
+    typeEl.textContent = signal.type;
+    valueEl.textContent = `${signal.code} — ${signal.label}`;
+    if (signal.status === 'granted') valueEl.classList.add('consent-granted');
+    else if (signal.status === 'denied') valueEl.classList.add('consent-denied');
+    else valueEl.classList.add('consent-missing');
+    container.appendChild(fragment);
+  }
+}
+
+function formatRelativeTime(timestamp) {
+  const diff = Math.round((Date.now() - timestamp) / 1000);
+  if (diff < 5) return 'just now';
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  return `${Math.floor(diff / 3600)}h ago`;
+}
+
+export function renderHistory(networkData, elements) {
+  if (!networkData || !networkData.history || networkData.history.length === 0) {
+    elements.historySection.classList.add('hidden');
+    return;
+  }
+
+  elements.historySection.classList.remove('hidden');
+  elements.historyTimeline.innerHTML = '';
+
+  // Newest first
+  const entries = [...networkData.history].reverse();
+  for (const entry of entries) {
+    const div = document.createElement('div');
+    div.className = 'history-entry';
+
+    const time = document.createElement('div');
+    time.className = 'history-time';
+    time.textContent = formatRelativeTime(entry.timestamp);
+
+    const detail = document.createElement('div');
+    detail.className = 'history-detail';
+
+    const parts = [];
+    if (entry.newGcs) {
+      const prev = entry.previousGcs?.raw || '—';
+      const className = entry.newGcs.ads === 'granted' && entry.newGcs.analytics === 'granted'
+        ? 'history-change-granted' : 'history-change-denied';
+      parts.push(`<span class="${className}">GCS: ${prev} → ${entry.newGcs.raw}</span>`);
+    }
+    if (entry.newGcd) {
+      const prev = entry.previousGcd?.raw || '—';
+      parts.push(`<span>GCD: ${prev} → ${entry.newGcd.raw}</span>`);
+    }
+    detail.innerHTML = parts.join('<br>');
+
+    div.appendChild(time);
+    div.appendChild(detail);
+    elements.historyTimeline.appendChild(div);
   }
 }

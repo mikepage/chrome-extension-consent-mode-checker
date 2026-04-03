@@ -1,14 +1,21 @@
 {
   "name": "Consent Mode Checker",
   "description": "Verify Google Consent Mode v2 implementation and CMP integration",
-  "version": "1.0",
+  "version": "1.1.0",
   "manifest_version": 3,
   "author": "mikepagenl",
   "background": {
     "service_worker": "src/service-worker.js",
     "type": "module"
   },
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": ["storage", "activeTab", "scripting", "webRequest"],
+  "host_permissions": [
+    "*://www.google-analytics.com/*",
+    "*://google-analytics.com/*",
+    "*://analytics.google.com/*",
+    "*://region1.google-analytics.com/*",
+    "*://stats.g.doubleclick.net/*"
+  ],
   "action": {
     "default_popup": "src/popup/popup.html",
     "default_icon": {

@@ -45,6 +45,46 @@
         <div id="consentState" class="consent-grid"></div>
       </div>
 
+      <div id="networkSection" class="section hidden">
+        <div class="section-title section-title-toggle" data-target="networkContent">
+          <span>Network Signals (GCS / GCD)</span>
+          <span class="collapse-arrow"></span>
+        </div>
+        <div id="networkContent" class="collapsible-content">
+          <div class="subsection">
+            <div class="subsection-title">GCS (Consent Status)</div>
+            <div id="gcsInfo" class="info-row"></div>
+          </div>
+          <div class="subsection">
+            <div class="subsection-title">GCD (Consent Details)</div>
+            <div id="gcdGrid" class="consent-grid"></div>
+          </div>
+          <div id="networkMeta" class="network-meta"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title section-title-toggle" data-target="calculatorContent">
+          <span>GCD Calculator</span>
+          <span class="collapse-arrow"></span>
+        </div>
+        <div id="calculatorContent" class="collapsible-content collapsed">
+          <input type="text" id="gcdInput" class="gcd-input" placeholder="Paste GCD string (e.g. 11t1t1t1t5)" />
+          <div id="gcdCalcResult" class="consent-grid"></div>
+          <div id="gcdCalcError" class="calc-error hidden"></div>
+        </div>
+      </div>
+
+      <div id="historySection" class="section hidden">
+        <div class="section-title section-title-toggle" data-target="historyContent">
+          <span>Consent History</span>
+          <span class="collapse-arrow"></span>
+        </div>
+        <div id="historyContent" class="collapsible-content">
+          <div id="historyTimeline" class="history-timeline"></div>
+        </div>
+      </div>
+
       <div id="issuesSection" class="section hidden">
         <div class="section-title issues-title">Issues</div>
         <div id="issuesList" class="issues-list"></div>

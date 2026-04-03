@@ -88,6 +88,49 @@ body {
   margin-bottom: 4px;
 }
 
+.section-title-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.collapse-arrow::after {
+  content: '\25BC';
+  font-size: 8px;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+
+.collapsed + .collapse-arrow::after,
+.section-title-toggle:has(+ .collapsed) .collapse-arrow::after {
+  transform: rotate(-90deg);
+}
+
+.collapsible-content {
+  overflow: hidden;
+  max-height: 600px;
+  transition: max-height 0.2s ease;
+}
+
+.collapsible-content.collapsed {
+  max-height: 0;
+}
+
+.subsection {
+  margin-bottom: 6px;
+}
+
+.subsection-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: #bbb;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin: 6px 0 3px;
+}
+
 .info-row {
   display: flex;
   align-items: center;
@@ -196,6 +239,78 @@ body {
 .issue-item::before {
   content: '\26A0';
   flex-shrink: 0;
+}
+
+/* Network meta */
+.network-meta {
+  font-size: 10px;
+  color: #999;
+  margin-top: 4px;
+  text-align: right;
+}
+
+/* GCD Calculator */
+.gcd-input {
+  width: 100%;
+  padding: 6px 8px;
+  font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #f9f9f9;
+  margin-bottom: 6px;
+  outline: none;
+}
+
+.gcd-input:focus {
+  border-color: #1a73e8;
+  background: #fff;
+}
+
+.calc-error {
+  font-size: 11px;
+  color: #c5221f;
+  padding: 4px 0;
+}
+
+/* Consent History */
+.history-timeline {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.history-entry {
+  display: flex;
+  gap: 8px;
+  padding: 4px 6px;
+  border-left: 2px solid #ddd;
+  margin-left: 4px;
+  font-size: 11px;
+}
+
+.history-entry:first-child {
+  border-left-color: #1a73e8;
+}
+
+.history-time {
+  color: #999;
+  white-space: nowrap;
+  min-width: 50px;
+  font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 10px;
+}
+
+.history-detail {
+  flex: 1;
+  word-break: break-all;
+}
+
+.history-change-granted {
+  color: #137333;
+}
+
+.history-change-denied {
+  color: #c5221f;
 }
 
 /* Rescan */
