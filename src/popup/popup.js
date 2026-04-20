@@ -36,34 +36,54 @@ const elements = {
 
 let currentTabId = null;
 
-async function scan() {
+const RESTRICTED_URL_PREFIXES = ['chrome://', 'chrome-extension://', 'chrome://newtab', 'about:', 'edge://'];
+
+function isRestrictedUrl(url) {
+  return !url || RESTRICTED_URL_PREFIXES.some((prefix) => url.startsWith(prefix));
+}
+
+function showScanError(message) {
+  elements.loading.classList.add('hidden');
+  elements.results.classList.remove('hidden');
+  elements.rescanBtn.classList.remove('hidden');
+  elements.statusBanner.className = 'banner banner-fail';
+  elements.statusBanner.textContent = message;
+}
+
+async function scan(tabId) {
   elements.loading.classList.remove('hidden');
   elements.results.classList.add('hidden');
   elements.rescanBtn.classList.add('hidden');
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  // If no tabId provided, query for the active tab
+  if (tabId === undefined) {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    tabId = tab.id;
+    currentTabId = tabId;
+
+    if (isRestrictedUrl(tab.url)) {
+      showScanError(`Cannot scan this page — browser internal pages are not accessible`);
+      return;
+    }
+  }
 
   try {
     const [{ result }] = await chrome.scripting.executeScript({
       func: detectConsentMode,
-      target: { tabId: tab.id },
+      target: { tabId },
       world: 'MAIN',
     });
 
-    chrome.storage.session.set({ [`scan_${tab.id}`]: result });
+    chrome.storage.session.set({ [`scan_${tabId}`]: result });
 
     elements.loading.classList.add('hidden');
     elements.results.classList.remove('hidden');
     elements.rescanBtn.classList.remove('hidden');
     renderResults(result, elements);
-    loadNetworkData(tab.id);
+    loadNetworkData(tabId);
   } catch (error) {
     console.warn('Consent Mode Checker: cannot scan this tab', error);
-    elements.loading.classList.add('hidden');
-    elements.results.classList.remove('hidden');
-    elements.rescanBtn.classList.remove('hidden');
-    elements.statusBanner.className = 'banner banner-fail';
-    elements.statusBanner.textContent = 'Cannot scan this page (restricted URL)';
+    showScanError('Cannot scan this page (restricted URL)');
   }
 }
 
@@ -93,11 +113,11 @@ async function loadNetworkData(tabId) {
     renderResults(cached[`scan_${tab.id}`], elements);
     loadNetworkData(tab.id);
   } else {
-    scan();
+    scan(tab.id);
   }
 })();
 
-elements.rescanBtn.addEventListener('click', scan);
+elements.rescanBtn.addEventListener('click', () => scan());
 
 // Collapsible sections
 for (const toggle of document.querySelectorAll('.section-title-toggle')) {

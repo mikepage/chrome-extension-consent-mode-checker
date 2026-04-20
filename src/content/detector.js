@@ -1,6 +1,8 @@
 // This function is serialized and injected into the active tab via
 // chrome.scripting.executeScript({ func }). It must be entirely
 // self-contained — no imports or references to outer scope.
+// The export is only used by popup.js to import the reference;
+// Chrome strips the module wrapper when injecting via executeScript.
 export function detectConsentMode() {
   const result = {
     consentMode: { detected: false, defaults: null, updates: null, implementation: null },
@@ -254,8 +256,14 @@ export function detectConsentMode() {
         result.issues.push(`Missing required consent type in defaults: ${consentType}`);
       }
     }
-    const hasWaitForUpdate = defaults.wait_for_update
+    // wait_for_update can be set globally in defaults, or per-type in ICS entries
+    let hasWaitForUpdate = defaults.wait_for_update
       || window.google_tag_data?.ics?.waitForUpdate;
+    if (!hasWaitForUpdate && window.google_tag_data?.ics?.entries) {
+      for (const consentEntry of Object.values(window.google_tag_data.ics.entries)) {
+        if (consentEntry.wait_for_update) { hasWaitForUpdate = true; break; }
+      }
+    }
     if (!hasWaitForUpdate) {
       result.issues.push('Missing wait_for_update in defaults — recommended to set (e.g. 500ms) so CMP can load before tags fire');
     }

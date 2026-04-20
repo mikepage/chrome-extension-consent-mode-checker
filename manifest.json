@@ -1,7 +1,7 @@
 {
   "name": "Consent Mode Checker",
   "description": "Verify Google Consent Mode v2 implementation and CMP integration",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "manifest_version": 3,
   "author": "mikepagenl",
   "background": {

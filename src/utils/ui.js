@@ -35,7 +35,11 @@ function addConsentRow(container, template, consentType, consentValue) {
 function renderConsentGrid(container, data, template) {
   container.innerHTML = '';
   if (!data) {
-    container.innerHTML = '<div class="consent-type" style="grid-column:1/-1;color:#999;font-style:italic">Not set</div>';
+    const placeholder = document.createElement('div');
+    placeholder.className = 'consent-type';
+    placeholder.style.cssText = 'grid-column:1/-1;color:#999;font-style:italic';
+    placeholder.textContent = 'Not set';
+    container.appendChild(placeholder);
     return;
   }
   for (const consentType of CONSENT_TYPES) {
@@ -157,7 +161,11 @@ export function renderNetworkSignals(networkData, elements) {
 export function renderGcdGrid(container, gcd, template) {
   container.innerHTML = '';
   if (!gcd || !gcd.signals) {
-    container.innerHTML = '<div class="consent-type" style="grid-column:1/-1;color:#999;font-style:italic">Not found in requests</div>';
+    const placeholder = document.createElement('div');
+    placeholder.className = 'consent-type';
+    placeholder.style.cssText = 'grid-column:1/-1;color:#999;font-style:italic';
+    placeholder.textContent = 'Not found in requests';
+    container.appendChild(placeholder);
     return;
   }
   for (const signal of gcd.signals) {
@@ -203,18 +211,21 @@ export function renderHistory(networkData, elements) {
     const detail = document.createElement('div');
     detail.className = 'history-detail';
 
-    const parts = [];
     if (entry.newGcs) {
+      const span = document.createElement('span');
       const prev = entry.previousGcs?.raw || '—';
-      const className = entry.newGcs.ads === 'granted' && entry.newGcs.analytics === 'granted'
+      span.className = entry.newGcs.ads === 'granted' && entry.newGcs.analytics === 'granted'
         ? 'history-change-granted' : 'history-change-denied';
-      parts.push(`<span class="${className}">GCS: ${prev} → ${entry.newGcs.raw}</span>`);
+      span.textContent = `GCS: ${prev} → ${entry.newGcs.raw}`;
+      detail.appendChild(span);
     }
     if (entry.newGcd) {
+      if (detail.childNodes.length) detail.appendChild(document.createElement('br'));
+      const span = document.createElement('span');
       const prev = entry.previousGcd?.raw || '—';
-      parts.push(`<span>GCD: ${prev} → ${entry.newGcd.raw}</span>`);
+      span.textContent = `GCD: ${prev} → ${entry.newGcd.raw}`;
+      detail.appendChild(span);
     }
-    detail.innerHTML = parts.join('<br>');
 
     div.appendChild(time);
     div.appendChild(detail);

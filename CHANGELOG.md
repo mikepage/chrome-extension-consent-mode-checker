@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.1
+
+### Fixed
+
+- **Security** — replaced all `innerHTML` usage with safe DOM construction (`createElement`/`textContent`) to eliminate potential XSS from network request parameters
+- **Race condition in network request tracking** — service worker now uses an in-memory store with debounced sync to `chrome.storage.session`, preventing lost data when multiple requests fire simultaneously
+- **`wait_for_update` false positives** — detection now checks per-type `wait_for_update` in ICS entries, not just the global default
+- **Popup content clipping** — long content now scrolls instead of being clipped by Chrome's 600px popup height limit
+- **Restricted URL handling** — pre-checks `tab.url` before attempting script injection, showing a clearer error for browser internal pages (`chrome://`, `about:`, etc.)
+
 ## 1.1.0
 
 ### Added
