@@ -1,6 +1,6 @@
 # Privacy Policy — Consent Mode Checker
 
-**Last updated:** 2026-04-03
+**Last updated:** 2026-04-20
 
 ## Overview
 
@@ -16,7 +16,7 @@ Scan results and network signal data are cached locally in `chrome.storage.sessi
 
 ## Network monitoring
 
-The extension monitors requests to Google Analytics collect endpoints (`google-analytics.com`, `analytics.google.com`, `stats.g.doubleclick.net`) solely to extract `gcs` and `gcd` consent parameters from the URL. Only these URL parameters are read — no request bodies, response content, cookies, or headers are accessed. The extracted consent parameters are stored locally in session storage and cleared when you navigate away or close the tab.
+The extension monitors requests to Google Analytics collect endpoints (`google-analytics.com`, `region1.google-analytics.com`, `analytics.google.com`, `stats.g.doubleclick.net`) solely to extract `gcs` and `gcd` consent parameters from the URL. Only these URL parameters are read — no request bodies, response content, cookies, or headers are accessed. The extracted consent parameters are buffered in memory and synced to local session storage for display in the popup. All data is cleared when you navigate away or close the tab.
 
 ## Permissions
 
@@ -27,6 +27,10 @@ The extension monitors requests to Google Analytics collect endpoints (`google-a
 | `scripting` | Inject the detector script into the active tab to read consent mode state from page JavaScript globals. The script only reads data — it does not modify any page content. |
 | `webRequest` | Observe Google Analytics collect requests to extract `gcs` and `gcd` consent parameters from the URL. No request bodies or response content is accessed. |
 | `host_permissions` | Scoped to Google Analytics and DoubleClick domains only. Required by the `webRequest` permission to monitor consent parameters in network requests. |
+
+## Security
+
+The extension UI is built exclusively with safe DOM construction (`createElement`/`textContent`). No user-controlled data is ever inserted via `innerHTML`, preventing XSS from crafted URL parameters.
 
 ## Third parties
 

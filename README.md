@@ -78,7 +78,7 @@ This extension **does not collect, transmit, or store any user data** outside of
 | `storage` | Caches scan results and network signal data in `chrome.storage.session` so the popup can display results without re-scanning when reopened. Data is session-scoped and cleared on tab navigation. No data is transmitted externally. |
 | `activeTab` | Needed to access the current tab when the user opens the popup. The extension injects the detector script into the active tab to read consent mode state. Access is only granted for the tab the user explicitly interacts with. |
 | `scripting` | Used to inject the detector content script (`content/detector.js`) into the active tab in the `MAIN` world to access page JavaScript globals (`dataLayer`, `google_tag_data`, `google_tag_manager`, CMP objects). The script only reads consent state — it does not modify any page content. |
-| `webRequest` | Monitors Google Analytics collect requests (`google-analytics.com`, `analytics.google.com`, `stats.g.doubleclick.net`) to extract `gcs` and `gcd` consent parameters. Only URL parameters are read — no request bodies or response content is accessed. |
+| `webRequest` | Monitors Google Analytics collect requests (`google-analytics.com`, `region1.google-analytics.com`, `analytics.google.com`, `stats.g.doubleclick.net`) to extract `gcs` and `gcd` consent parameters. Only URL parameters are read — no request bodies or response content is accessed. |
 | `host_permissions` | Scoped to Google Analytics and DoubleClick domains only. Required by `webRequest` to observe consent parameters in Google tag network requests. No other domains are accessed. |
 
 ## License
